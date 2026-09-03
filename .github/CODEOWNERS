@@ -1,0 +1,5 @@
+/.github/CODEOWNERS @scieum
+/.github/workflows/ @scieum
+/scripts/validate_publication.py @scieum
+/lib/publication.py @scieum
+/schemas/publication.schema.json @scieum

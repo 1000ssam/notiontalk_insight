@@ -92,7 +92,7 @@ B3 질문함폴링(30분) → B4 검색 → B5 답변생성 → B6 검증 → B7
 
 ## 실행
 
-Python 3.9+ (표준 라이브러리만). LLM을 부르는 부분만 `google-genai`가 필요합니다.
+Python 3.10+가 지원 범위입니다(CI는 3.12 고정). LLM을 부르는 부분만 `google-genai`가 필요합니다.
 
 ```bash
 python3 -m venv .venv
@@ -146,6 +146,59 @@ python3 .claude/skills/pii-guard/scripts/apply.py output/insights/period_<id>.pa
 
 사이클 상태(지난 호가 다룬 마지막 시각, 호수, 처리한 파일)는 `output/state.json`에 있습니다.
 launchd 설치는 `launchd/com.talkinsight.collect_publish.plist` 머리말을 보세요.
+
+### 공개 newsletter publication 만들기
+
+A6 `final.json`은 근거 ID와 로컬 산출물 정보를 포함할 수 있으므로 그대로 GitHub에
+올리지 않습니다. 다음 명령은 공개 허용 필드만 새 객체로 만들고 PII·기간·항목 수·
+canonical SHA-256을 다시 검사합니다. `generated_at`도 해시 대상이므로 같은 입력을
+재현하려면 같은 RFC 3339 값을 넘겨야 합니다.
+
+기존 A6 파일은 다시 A6를 실행해야 합니다. 새 A6는 적용한 consent mode, 입력에서 검증한
+기간 경계, exact payload digest를 `privacy_evidence`에 기록하며, builder는 이 증거가 없거나
+현재 설정·요청 기간과 다르거나 payload가 바뀌었으면 공개 projection을 만들지 않습니다.
+이 SHA-256은 우발적인 변조·재라벨링을 탐지하는 provenance 무결성 장치이지 작성자 인증이
+아닙니다. 악의적인 작성자는 digest를 다시 만들 수 있으므로 upstream 보호 브랜치의 trusted
+gate와 독립 CODEOWNERS 리뷰가 실제 운영의 필수 신뢰 경계입니다.
+
+```bash
+python3 scripts/build_publication.py \
+  --final output/insights/period_<id>.final.json \
+  --period-start 2026-08-19 \
+  --period-end 2026-08-26 \
+  --issue 1 \
+  --generated-at 2026-08-26T09:00:00+09:00
+
+python3 scripts/validate_publication.py \
+  --file publications/insight-20260819-20260826/publication.json
+```
+
+PR 준비 상태는 네트워크 없이 확인할 수 있습니다. 이 모드는 토큰이 있어도 GitHub를
+호출하지 않고 로컬 Git 상태도 바꾸지 않습니다.
+
+```bash
+python3 scripts/open_publication_pr.py \
+  publications/insight-20260819-20260826/publication.json \
+  --dry-run
+```
+
+실행 모드는 `scieum/notiontalk_insight`의
+`publication/<content_id>` 브랜치에 허용 JSON 한 파일만 Contents API로 커밋하고 같은
+open PR을 생성·갱신합니다. `TALKINSIGHT_GITHUB_TOKEN`이 없으면 GitHub 요청 전에
+종료합니다. 실제 실행은 정확한 저장소·브랜치·토큰 사용에 대한 별도 승인을 받은 뒤에만
+`--execute`로 수행합니다.
+
+### GitHub 보호 설정 의존성
+
+GitHub 공식 문서상 `pull_request`는 PR merge commit의 workflow를 실행하므로 base-owned
+validator라고 볼 수 없습니다. `validate-publication / trusted-content-gate`는 대신
+`pull_request_target`의 base workflow와 base SHA validator를 사용하고, exact head tree는
+JSON 데이터로만 검사하며 head의 Python·테스트·action을 실행하지 않습니다. secret은 없고
+token 권한은 `contents: read`뿐입니다. 이 코드만으로 merge를 강제할 수는 없습니다.
+upstream 관리자는 `main`을 보호하고 이 check를 필수로 지정하며, `.github/workflows/`,
+`scripts/validate_publication.py`, `lib/publication.py`, schema 변경에 CODEOWNERS 승인을
+필수로 설정해야 합니다. 설정 전에는 publication PR을 merge하면 안 됩니다. 현재 로컬
+준비는 이 provider 설정을 변경하거나 확인 완료로 간주하지 않습니다.
 
 ---
 

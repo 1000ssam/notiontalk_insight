@@ -1,0 +1,61 @@
+name: Validate publication
+
+on:
+  # GitHub documents that pull_request runs the workflow from the PR merge
+  # commit. pull_request_target keeps this workflow base-owned; the checked-out
+  # head below is treated only as data and no head script/action is executed.
+  # https://docs.github.com/en/actions/reference/security/securely-using-pull-request-target
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  trusted-content-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out trusted base validator
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          path: trusted
+
+      - name: Set up supported Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Check out exact untrusted head as data only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: candidate
+
+      - name: Fetch exact base for changed-path validation
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+        run: git -C candidate fetch --no-tags "https://github.com/${BASE_REPOSITORY}.git" "$BASE_SHA"
+
+      - name: Run base-owned validator against exact head tree
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ ! -f trusted/scripts/validate_publication.py ]; then
+            if git -C candidate diff --name-only "$BASE_SHA" "$HEAD_SHA" -- | grep -q '^publications/'; then
+              echo 'Trusted publication validator is not installed on the base branch.' >&2
+              exit 1
+            fi
+            echo 'Bootstrap code PR: no publication payload; trusted gate activates after merge.'
+            exit 0
+          fi
+          python3 trusted/scripts/validate_publication.py \
+            --repository-root candidate \
+            --git-diff "$BASE_SHA" "$HEAD_SHA"
