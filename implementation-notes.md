@@ -7,6 +7,12 @@
 
 ## 설계 결정
 
+### 2026-09-19 — 주간 시리즈 제목과 주별 hook을 분리
+- **상황/기준**: 1호는 일반 요약 제목, 2·3호는 사이음이 선택한 주제별 `hook_title`을 정식 제목으로 사용해 시리즈 정체성이 일관되지 않았다.
+- **선택**: `title`은 `노션하는 교사톡 주간 인사이트 N호`로 고정하고, `hook_title`은 nullable 부제목으로 분리한다.
+- **근거**: 매주 톡방 전체를 요약한다는 레터의 성격을 제목에서 고정하고, 주별 해석은 부제목 계층에만 두기 위해서다.
+- **위치**: `scripts/build_publication.py`, `schemas/publication.schema.json`, `scripts/backfill_report_publication.py`
+
 ### 2026-09-19 — 구 리포트 HTML backfill은 공개 DOM만 사용
 - **상황/기준**: 과거 1~3호는 A6 final.json과 embedded projection을 Git에 올리지 않았지만, 이미 검토용 HTML에 전체 정보 구조가 남아 있다.
 - **선택**: 공개 HTML의 masthead·stats·topics·FAQ·open·tips·actions만 파싱하고, legacy 닉네임은 공개 운영자 이름 또는 승인된 가명으로 정규화한 뒤 현재 publication validator를 다시 통과시킨다.

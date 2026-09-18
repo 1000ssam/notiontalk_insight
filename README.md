@@ -170,6 +170,9 @@ gate와 독립 CODEOWNERS 리뷰가 실제 운영의 필수 신뢰 경계입니�
 리포트 PR 작성자는 기존처럼 `reports/*.html` 한 파일만 올리면 됩니다.
 별도 publication 브랜치·PR·GitHub token은 필요 없습니다.
 
+뉴스레터 정식 제목은 `노션하는 교사톡 주간 인사이트 N호`로 고정한다.
+사이음이 생성한 `hook_title`은 제목이 아니라 이메일·웹·Notion의 부제목으로 전달한다.
+
 ---
 
 ## 구조

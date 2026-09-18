@@ -137,7 +137,9 @@ def project_legacy_report(html_text: str, *, generated_at: str) -> dict:
     issue = int(issue_match.group(1))
     start = period_match.group(1).replace(".", "-")
     end = period_match.group(2).replace(".", "-")
-    title = anonymize_legacy_text(required(masthead.first(tag="h1"), "title").text())
+    legacy_title = anonymize_legacy_text(required(masthead.first(tag="h1"), "title").text())
+    title = f"노션하는 교사톡 주간 인사이트 {issue}호"
+    hook_title = None if legacy_title in {"노션하는 교사톡 주간 요약", title} else legacy_title
     intro_node = masthead.first(class_name="intro")
     intro = anonymize_legacy_text(intro_node.text()) if intro_node and intro_node.text() else "이번 주 노션하는 교사톡에서 나눈 질문과 팁을 정리했습니다."
 
@@ -199,6 +201,7 @@ def project_legacy_report(html_text: str, *, generated_at: str) -> dict:
         "issue": issue,
         "period": {"start": start, "end": end, "label": f"{start.replace('-', '.')} - {end[5:].replace('-', '.')}"},
         "title": title,
+        "hook_title": hook_title,
         "intro": intro,
         "stats": stats,
         "topics": topics,

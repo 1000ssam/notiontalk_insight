@@ -138,6 +138,7 @@ TOP_LEVEL_KEYS = frozenset(
         "issue",
         "period",
         "title",
+        "hook_title",
         "intro",
         "stats",
         "topics",
@@ -546,6 +547,8 @@ def validate_publication(publication: Any, *, verify_hash: bool = True) -> None:
                 errors.append("content_id and slug revision suffixes must match")
 
     _string(publication.get("title"), "$.title", errors)
+    if publication.get("hook_title") is not None:
+        _string(publication.get("hook_title"), "$.hook_title", errors)
     _string(publication.get("intro"), "$.intro", errors)
 
     stats = publication.get("stats")

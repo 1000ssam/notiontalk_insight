@@ -80,6 +80,8 @@ class ProjectionTest(unittest.TestCase):
             {"topics": 2, "faq": 2, "unresolved": 1, "tips": 2, "actions": 2},
         )
         self.assertEqual(publication["period"]["label"], "2026.08.19 - 08.26")
+        self.assertEqual(publication["title"], "노션하는 교사톡 주간 인사이트 1호")
+        self.assertEqual(publication["hook_title"], "데이터베이스 보기를 어떻게 정리할까요?")
         self.assertEqual(publication["generated_at"], "2026-09-03T03:00:00Z")
         self.assertEqual(publication["actions"][1]["owner"], "함께한 선생님A")
         validate_publication(publication)

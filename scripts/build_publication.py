@@ -193,9 +193,11 @@ def project_publication(
     tips_source = _array(final.get("tips", []), "final.tips")
     actions_source = _array(final.get("actions", []), "final.actions")
 
-    title = report.get("hook_title") or report.get("title")
-    if not isinstance(title, str) or not title.strip():
-        raise PublicationValidationError("final.report needs a non-empty hook_title or title")
+    raw_hook = report.get("hook_title")
+    if raw_hook is not None and (not isinstance(raw_hook, str) or not raw_hook.strip()):
+        raise PublicationValidationError("final.report.hook_title must be a non-empty string or null")
+    hook_title = raw_hook.strip() if isinstance(raw_hook, str) else None
+    title = f"노션하는 교사톡 주간 인사이트 {issue}호"
 
     topics = []
     for index, raw in enumerate(topics_source):
@@ -273,6 +275,7 @@ def project_publication(
             "label": period_label(start, end),
         },
         "title": title,
+        "hook_title": hook_title,
         "intro": _required_text(report, "intro", "final.report"),
         "stats": dict(stats),
         "topics": topics,

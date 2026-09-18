@@ -12,6 +12,7 @@
     "issue",
     "period",
     "title",
+    "hook_title",
     "intro",
     "stats",
     "topics",
@@ -46,6 +47,7 @@
       }
     },
     "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "hook_title": { "type": ["string", "null"], "minLength": 1, "maxLength": 120 },
     "intro": { "type": "string", "minLength": 1, "maxLength": 3000 },
     "stats": {
       "type": "object",
