@@ -7,6 +7,12 @@
 
 ## 설계 결정
 
+### 2026-09-18 — 승인된 공개 projection을 뉴스레터 파이프라인의 단일 입력으로 사용
+- **상황/기준**: 현재 A7은 TalkInsight 전용 Notion DB에 본문을 복제하지만, 노션톡 뉴스레터 공개 HTML·뉴스레터 DB·SES 발송과는 연결되지 않았다.
+- **선택**: A6 직후 allowlist `publication.json`을 항상 생성하고, `TALKINSIGHT_GITHUB_TOKEN`이 있을 때 publication PR을 생성·갱신한다. 기존 Notion 초안 경로는 `--legacy-notion-draft`로만 명시적 실행한다.
+- **근거**: 이전 구현의 hash·PII·exact-SHA 승인 계약을 재사용하고, Notion 본문 복제 원장과 노션톡 뉴스레터 원장의 이중 정본을 피한다.
+- **위치**: `scripts/run_cycle.py`, `scripts/build_publication.py`, `scripts/open_publication_pr.py`
+
 ### 2026-09-03 — JSON과 날짜는 Python의 관대한 동등성·파서보다 좁게 검증
 - **상황/기준**: 표준 `json.loads`는 중복 키를 마지막 값으로 덮고 Python은 `True == 1`이며 `date.fromisoformat`은 compact 날짜도 허용한다.
 - **선택**: 모든 publication/A6 builder 입력에 중첩 중복 키 거부 loader를 사용하고, schema const·enum은 타입까지 같아야 하며, 날짜는 정규식과 calendar 검사를 모두 통과한 `YYYY-MM-DD`만 허용한다.
@@ -107,6 +113,8 @@
 
 ## 미결 질문
 
+- [해결됨] 2026-09-18 최신 `origin/main` 위에 공개 projection 커밋을 이식하고 `run_cycle.py`에 A7P 생성·선택적 PR 갱신을 연결했다. Python 57개 테스트, `py_compile`, 실제 fixture projection·validator, `git diff --check`가 통과했다 (`scripts/run_cycle.py`, `tests/test_publication.py`).
+- [미해결] 현재 브랜치는 로컬 커밋 준비 상태이며, upstream push·PR·main 보호 설정·required check 등록은 각각 별도 승인 전에 수행하지 않는다.
 - [확인필요] upstream `scieum/notiontalk_insight` 관리자가 `main` 보호, `validate-publication / trusted-content-gate` required check, CODEOWNERS 승인 요구를 실제로 설정해야 한다. 현재 계정은 upstream admin 권한이 없어 로컬 코드로 강제하거나 확인 완료 처리할 수 없다 (`README.md`, `.github/CODEOWNERS`).
 - [해결됨] Phase 1 최종 재감사의 중복 JSON 키, 타입 민감 const·enum, full-date, local/remote 공통 byte ceiling 검증까지 보강했다. A6→builder 통합 및 적대 케이스를 포함한 전체 41개 테스트, `/tmp` pycache를 사용한 `py_compile`, 전체 publication validator, `git diff --check`가 통과했다 (`tests/test_publication.py`).
 - [해결됨] Phase 1 차단 항목을 보강하고 전체 29개 테스트, 전체 publication validator, `py_compile`(별도 `/tmp` pycache), status 포함 changed-path validator, `git diff --check`를 통과했다 (`tests/test_publication.py`).

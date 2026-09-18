@@ -139,10 +139,17 @@ python3 .claude/skills/pii-guard/scripts/apply.py output/insights/period_<id>.pa
 1. 카카오톡 → 채팅방 설정 → 대화 내용 관리 → **텍스트 파일로 저장** → 받은 CSV를 `inbox/raw/`에 넣습니다.
    (아직 이 한 단계는 사람이 합니다. A0/A0' 자동화가 검증되면 사라집니다.)
 2. 월/목 09:00에 launchd가 `run_cycle.py`를 부릅니다. 새 파일이 없으면 macOS 알림만 띄우고 끝납니다.
-3. 새 파일이 있으면 A1~A6 → `output/reports/<N>호_….html` 검토본을 만들고, 노션 토큰이 있으면
-   노션 DB에 **초안**으로도 올립니다. 리포트를 자동으로 발행 상태로 바꾸지는 않습니다(C5).
-4. 검토 후 노션에서 상태를 직접 바꿉니다. 반려했다면 그 사유를 `output/state.json`의
+3. 새 파일이 있으면 A1~A6 → `output/reports/<N>호_….html` 검토본과 검증된
+   `publications/<content_id>/publication.json`을 함께 만듭니다.
+4. `TALKINSIGHT_GITHUB_TOKEN`이 설정돼 있으면 publication PR을 생성·갱신합니다. 없으면
+   JSON만 남겨 외부 쓰기 없이 멈춥니다. `--no-publication-pr`로 PR 쓰기를 명시적으로 끌 수 있습니다.
+5. publication PR은 뉴스레터의 검토·승인 게이트를 거쳐 공개 HTML, 노션 뉴스레터
+   DB의 URL 북마크 원장, 테스트/전체 SES 발송으로 연결됩니다.
+6. 반려했다면 그 사유를 `output/state.json`의
    `rejections`에 적어 두면 다음 호 프롬프트에 주입됩니다.
+
+기존 TalkInsight 전용 Notion DB에 초안을 복제하는 경로는 이중 원장을 피하기 위해 기본으로 끄고,
+필요할 때만 `--legacy-notion-draft`로 실행합니다.
 
 사이클 상태(지난 호가 다룬 마지막 시각, 호수, 처리한 파일)는 `output/state.json`에 있습니다.
 launchd 설치는 `launchd/com.talkinsight.collect_publish.plist` 머리말을 보세요.
