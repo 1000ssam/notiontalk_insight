@@ -257,6 +257,11 @@ class ValidatorTest(unittest.TestCase):
         with self.assertRaisesRegex(PublicationValidationError, "forbidden keys"):
             validate_publication(candidate)
 
+        allowed = deepcopy(self.publication)
+        allowed["intro"] = "1000쌤이 공유한 노션 활용 팁입니다."
+        self.rehash(allowed)
+        validate_publication(allowed)
+
     def test_schema_top_level_contract_matches_runtime_validator(self):
         schema = json.loads((ROOT / "schemas" / "publication.schema.json").read_text("utf-8"))
         self.assertFalse(schema["additionalProperties"])

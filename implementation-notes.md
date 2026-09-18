@@ -7,6 +7,18 @@
 
 ## 설계 결정
 
+### 2026-09-19 — 구 리포트 HTML backfill은 공개 DOM만 사용
+- **상황/기준**: 과거 1~3호는 A6 final.json과 embedded projection을 Git에 올리지 않았지만, 이미 검토용 HTML에 전체 정보 구조가 남아 있다.
+- **선택**: 공개 HTML의 masthead·stats·topics·FAQ·open·tips·actions만 파싱하고, legacy 닉네임은 공개 운영자 이름 또는 승인된 가명으로 정규화한 뒤 현재 publication validator를 다시 통과시킨다.
+- **근거**: 원문 대화·source ID·로컬 final 파일에 접근하지 않고 이미 공개 검토된 표면만 이전한다.
+- **위치**: `scripts/backfill_report_publication.py`
+
+### 2026-09-19 — 공개 운영자 이름을 anon 검증에서 명시적 허용
+- **상황/기준**: 사용자 규칙의 기본 공개 이름도 일반 person-like honorific으로 차단됐다.
+- **선택**: 공개 기본 이름 하나만 text·action owner 경계에서 허용하고, 다른 `OO쎤`은 계속 거부한다.
+- **근거**: 사용자 실명을 추가로 노출하지 않으면서 이미 승인된 공개 이름을 지원한다.
+- **위치**: `lib/publication.py`, `tests/test_publication.py`
+
 ### 2026-09-18 — 리포트 HTML 하나에 뉴스레터 투영 데이터를 함께 보존
 - **상황/기준**: 별도 publication PR은 사이음의 기존 리포트 PR·main 흐름과 이중으로 운영된다.
 - **선택**: A6 allowlist projection을 리포트 HTML의 `application/json` script에 비가시적으로 포함하고, 별도 publication PR 생성을 제거한다.
@@ -125,6 +137,7 @@
 
 ## 미결 질문
 
+- [해결됨] 과거 1~3호 모두 publication 복원·검증과 실 provider shadow dry-run을 통과했다. 세 호 모두 `would_publish=true`, 식별자 충돌 없음, 외부 쓰기 0건이었다 (`scripts/backfill_report_publication.py`).
 - [해결됨] A6 projection을 HTML에 안전하게 포함하고 newsletter parser가 다시 검증하는 계약을 fixture 왕복 검증과 전체 58개 테스트로 확인했다 (`scripts/render_report.py`, `tests/test_render_report.py`).
 - [해결됨] 2026-09-18 최신 `origin/main` 위에 공개 projection 코드를 이식하고 `run_cycle.py`에 A7P 생성·HTML embed를 연결했다 (`scripts/run_cycle.py`, `tests/test_publication.py`).
 - [미해결] 현재 브랜치는 로컬 커밋 준비 상태이며, upstream push·PR·main 보호 설정·required check 등록은 각각 별도 승인 전에 수행하지 않는다.

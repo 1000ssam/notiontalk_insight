@@ -35,7 +35,7 @@ COLLECTION_LIMITS = {
 }
 CONTENT_ID_RE = re.compile(r"^insight-\d{8}-\d{8}(?:-r[1-9]\d*)?$")
 SLUG_RE = re.compile(r"^community-insight-\d{3,}(?:-r[1-9]\d*)?$")
-ANON_OWNER_RE = re.compile(r"^함께한 선생님[A-Z]+$")
+ANON_OWNER_RE = re.compile(r"^(?:1000쌤|함께한 선생님[A-Z]+)$")
 PUBLICATION_PATH_RE = re.compile(
     r"^publications/(?P<content_id>insight-\d{8}-\d{8}(?:-r[1-9]\d*)?)/publication\.json$"
 )
@@ -389,7 +389,7 @@ def _privacy_pattern_errors(value: str, location: str, *, consent_mode: Any) -> 
             errors.append(f"{location} contains forbidden {name}")
     if consent_mode == "anon":
         scrubbed = re.sub(
-            r"함께한 선생님[A-Z]+|선생님|관리자님|운영자님",
+            r"1000쌤|함께한 선생님[A-Z]+|선생님|관리자님|운영자님",
             "",
             value,
         )
