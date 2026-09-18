@@ -35,6 +35,7 @@ def load_path(name: str, path: Path):
 build_publication = load_script("build_publication")
 validate_publication_script = load_script("validate_publication")
 open_publication_pr = load_script("open_publication_pr")
+backfill_report = load_script("backfill_report_publication")
 pii_apply = load_path("publication_test_pii_apply", ROOT / ".claude/skills/pii-guard/scripts/apply.py")
 
 from lib.publication import (
@@ -178,6 +179,26 @@ class ProjectionTest(unittest.TestCase):
         publication = project(final)
         self.assertEqual(publication["actions"][1]["owner"], "함께한 선생님A")
         validate_publication(publication)
+
+
+class LegacyBackfillTest(unittest.TestCase):
+    def test_reviewed_reports_recover_expected_public_item_counts(self):
+        cases = [
+            ("issue-01_2026-08-24_2026-08-30.html", (9, 5, 4, 5, 2)),
+            ("issue-02_2026-08-31_2026-09-05.html", (4, 4, 5, 17, 2)),
+            ("issue-03_2026-09-07_2026-09-13.html", (5, 6, 2, 3, 4)),
+        ]
+        for filename, expected in cases:
+            with self.subTest(filename=filename):
+                publication = backfill_report.project_legacy_report(
+                    (ROOT / "reports" / filename).read_text(encoding="utf-8"),
+                    generated_at="2026-09-18T00:00:00Z",
+                )
+                self.assertEqual(
+                    tuple(len(publication[key]) for key in ("topics", "faq", "unresolved", "tips", "actions")),
+                    expected,
+                )
+                validate_publication(publication)
 
 
 class ValidatorTest(unittest.TestCase):

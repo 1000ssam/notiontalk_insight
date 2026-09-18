@@ -137,7 +137,7 @@
 
 ## 미결 질문
 
-- [해결됨] 과거 1~3호 모두 publication 복원·검증과 실 provider shadow dry-run을 통과했다. 세 호 모두 `would_publish=true`, 식별자 충돌 없음, 외부 쓰기 0건이었다 (`scripts/backfill_report_publication.py`).
+- [해결됨] 과거 1~3호 모두 publication 복원·검증과 실 provider shadow dry-run을 통과했다. 세 호 모두 `would_publish=true`, 식별자 충돌 없음, 외부 쓰기 0건이었다. embedded script를 제거한 HTML은 각 기존 PR 파일과 바이트 단위로 같았다 (`scripts/backfill_report_publication.py`, `reports/`).
 - [해결됨] A6 projection을 HTML에 안전하게 포함하고 newsletter parser가 다시 검증하는 계약을 fixture 왕복 검증과 전체 58개 테스트로 확인했다 (`scripts/render_report.py`, `tests/test_render_report.py`).
 - [해결됨] 2026-09-18 최신 `origin/main` 위에 공개 projection 코드를 이식하고 `run_cycle.py`에 A7P 생성·HTML embed를 연결했다 (`scripts/run_cycle.py`, `tests/test_publication.py`).
 - [미해결] 현재 브랜치는 로컬 커밋 준비 상태이며, upstream push·PR·main 보호 설정·required check 등록은 각각 별도 승인 전에 수행하지 않는다.
