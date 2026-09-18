@@ -139,13 +139,11 @@ python3 .claude/skills/pii-guard/scripts/apply.py output/insights/period_<id>.pa
 1. 카카오톡 → 채팅방 설정 → 대화 내용 관리 → **텍스트 파일로 저장** → 받은 CSV를 `inbox/raw/`에 넣습니다.
    (아직 이 한 단계는 사람이 합니다. A0/A0' 자동화가 검증되면 사라집니다.)
 2. 월/목 09:00에 launchd가 `run_cycle.py`를 부릅니다. 새 파일이 없으면 macOS 알림만 띄우고 끝납니다.
-3. 새 파일이 있으면 A1~A6 → `output/reports/<N>호_….html` 검토본과 검증된
-   `publications/<content_id>/publication.json`을 함께 만듭니다.
-4. `TALKINSIGHT_GITHUB_TOKEN`이 설정돼 있으면 publication PR을 생성·갱신합니다. 없으면
-   JSON만 남겨 외부 쓰기 없이 멈춥니다. `--no-publication-pr`로 PR 쓰기를 명시적으로 끌 수 있습니다.
-5. publication PR은 뉴스레터의 검토·승인 게이트를 거쳐 공개 HTML, 노션 뉴스레터
-   DB의 URL 북마크 원장, 테스트/전체 SES 발송으로 연결됩니다.
-6. 반려했다면 그 사유를 `output/state.json`의
+3. 새 파일이 있으면 A1~A6 → `output/reports/<N>호_….html` 검토본을 만듭니다.
+   HTML 안에는 검증된 public projection이 `application/json`으로 포함되지만 화면에는 표시되지 않습니다.
+4. 리포트 PR이 사람 검토 후 `main`에 병합되면, 노션톡 뉴스레터의 일일 GitHub Actions가
+   새 HTML을 감지해 공개 페이지와 bookmark-only Notion 원장을 멱등 생성합니다.
+5. 반려했다면 그 사유를 `output/state.json`의
    `rejections`에 적어 두면 다음 호 프롬프트에 주입됩니다.
 
 기존 TalkInsight 전용 Notion DB에 초안을 복제하는 경로는 이중 원장을 피하기 위해 기본으로 끄고,
@@ -154,7 +152,7 @@ python3 .claude/skills/pii-guard/scripts/apply.py output/insights/period_<id>.pa
 사이클 상태(지난 호가 다룬 마지막 시각, 호수, 처리한 파일)는 `output/state.json`에 있습니다.
 launchd 설치는 `launchd/com.talkinsight.collect_publish.plist` 머리말을 보세요.
 
-### 공개 newsletter publication 만들기
+### 리포트 HTML에 newsletter projection 포함하기
 
 A6 `final.json`은 근거 ID와 로컬 산출물 정보를 포함할 수 있으므로 그대로 GitHub에
 올리지 않습니다. 다음 명령은 공개 허용 필드만 새 객체로 만들고 PII·기간·항목 수·
@@ -168,44 +166,9 @@ canonical SHA-256을 다시 검사합니다. `generated_at`도 해시 대상이�
 아닙니다. 악의적인 작성자는 digest를 다시 만들 수 있으므로 upstream 보호 브랜치의 trusted
 gate와 독립 CODEOWNERS 리뷰가 실제 운영의 필수 신뢰 경계입니다.
 
-```bash
-python3 scripts/build_publication.py \
-  --final output/insights/period_<id>.final.json \
-  --period-start 2026-08-19 \
-  --period-end 2026-08-26 \
-  --issue 1 \
-  --generated-at 2026-08-26T09:00:00+09:00
-
-python3 scripts/validate_publication.py \
-  --file publications/insight-20260819-20260826/publication.json
-```
-
-PR 준비 상태는 네트워크 없이 확인할 수 있습니다. 이 모드는 토큰이 있어도 GitHub를
-호출하지 않고 로컬 Git 상태도 바꾸지 않습니다.
-
-```bash
-python3 scripts/open_publication_pr.py \
-  publications/insight-20260819-20260826/publication.json \
-  --dry-run
-```
-
-실행 모드는 `scieum/notiontalk_insight`의
-`publication/<content_id>` 브랜치에 허용 JSON 한 파일만 Contents API로 커밋하고 같은
-open PR을 생성·갱신합니다. `TALKINSIGHT_GITHUB_TOKEN`이 없으면 GitHub 요청 전에
-종료합니다. 실제 실행은 정확한 저장소·브랜치·토큰 사용에 대한 별도 승인을 받은 뒤에만
-`--execute`로 수행합니다.
-
-### GitHub 보호 설정 의존성
-
-GitHub 공식 문서상 `pull_request`는 PR merge commit의 workflow를 실행하므로 base-owned
-validator라고 볼 수 없습니다. `validate-publication / trusted-content-gate`는 대신
-`pull_request_target`의 base workflow와 base SHA validator를 사용하고, exact head tree는
-JSON 데이터로만 검사하며 head의 Python·테스트·action을 실행하지 않습니다. secret은 없고
-token 권한은 `contents: read`뿐입니다. 이 코드만으로 merge를 강제할 수는 없습니다.
-upstream 관리자는 `main`을 보호하고 이 check를 필수로 지정하며, `.github/workflows/`,
-`scripts/validate_publication.py`, `lib/publication.py`, schema 변경에 CODEOWNERS 승인을
-필수로 설정해야 합니다. 설정 전에는 publication PR을 merge하면 안 됩니다. 현재 로컬
-준비는 이 provider 설정을 변경하거나 확인 완료로 간주하지 않습니다.
+`run_cycle.py`가 A6 산출물에서 projection을 만든 뒤 같은 HTML에 포함하므로,
+리포트 PR 작성자는 기존처럼 `reports/*.html` 한 파일만 올리면 됩니다.
+별도 publication 브랜치·PR·GitHub token은 필요 없습니다.
 
 ---
 

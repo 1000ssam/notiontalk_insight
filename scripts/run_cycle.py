@@ -10,8 +10,7 @@ collect_publish (파이프라인 A):
     A5  검증              — insight-evaluator/evaluate.py + apply_verdicts.py
     A6  PII 마스킹        — pii-guard/apply.py
     렌더                  — render_report.py (검토용 HTML, output/reports/)
-    A7P 공개 projection  — build_publication.py + open_publication_pr.py.
-                            토큰이 없으면 검증된 JSON만 로컬에 남긴다.
+    A7P 공개 projection  — build_publication.py로 검증한 JSON을 HTML에 포함.
     A7L 기존 Notion 초안 — 명시적 --legacy-notion-draft에서만 실행.
     A8  KB 갱신           — kb-builder 미구현. skip+log.
 
@@ -77,7 +76,6 @@ SCRIPT = {
     "pii_apply": SKILLS / "pii-guard/scripts/apply.py",
     "render": ROOT / "scripts/render_report.py",
     "build_publication": ROOT / "scripts/build_publication.py",
-    "open_publication_pr": ROOT / "scripts/open_publication_pr.py",
     "publish": SKILLS / "notion-publish/scripts/publish_report.py",
 }
 
@@ -139,16 +137,6 @@ def notion_token_present() -> bool:
     proc = subprocess.run(["security", "find-generic-password", "-s", "talkinsight-notion"],
                           capture_output=True, timeout=10)
     return proc.returncode == 0
-
-
-def publication_pr_token_present() -> bool:
-    """공개 projection PR을 만들 운영자 GitHub token이 현재 프로세스에 있는지 확인한다.
-
-    token 값은 절대 출력하지 않는다. 스크립트도 같은 환경변수를 직접 읽으며,
-    인자·로그·상태 파일에 비밀값을 남기지 않는다.
-    """
-    import os
-    return bool(os.environ.get("TALKINSIGHT_GITHUB_TOKEN", "").strip())
 
 
 # ── A0' 입력 찾기 ─────────────────────────────────────────────────────────
@@ -268,7 +256,10 @@ def collect_publish(args) -> int:
 
     issue = int(state.get("last_issue") or 0) + 1
     generated_at = datetime.now().astimezone().replace(microsecond=0).isoformat()
-    publication_out = run(
+    publication_path = OUTPUT_DIR / "reports" / (
+        f".insight-{start_iso.replace('-', '')}-{end_iso.replace('-', '')}.publication.json"
+    )
+    run(
         "A7P",
         SCRIPT["build_publication"],
         "--final", str(final),
@@ -276,28 +267,12 @@ def collect_publish(args) -> int:
         "--period-end", end_iso,
         "--issue", str(issue),
         "--generated-at", generated_at,
+        "--out", str(publication_path),
     )
-    publication_match = re.search(r"publications/[^\s]+/publication\.json", publication_out)
-    if not publication_match:
-        raise StageFailed("A7P publication.json 경로를 확인하지 못했습니다")
-    publication_path = ROOT / publication_match.group(0)
-
-    publication_pr = False
-    if args.no_publication_pr:
-        log_event("A7P", "skip", detail="--no-publication-pr: 공개 JSON만 생성")
-    elif not publication_pr_token_present():
-        log_event(
-            "A7P",
-            "skip",
-            detail="TALKINSIGHT_GITHUB_TOKEN 없음 — 공개 JSON만 생성",
-        )
-    else:
-        run("A7P", SCRIPT["open_publication_pr"], str(publication_path), "--execute")
-        publication_pr = True
 
     # 검토용 HTML
     render_args = ["--final", str(final), "--draft", str(draft), "--eval", str(evalj),
-                   "--issue", str(issue)]
+                   "--issue", str(issue), "--publication", str(publication_path)]
     if FONT_PATH.exists():
         render_args += ["--font", str(FONT_PATH)]
     out = run("render", SCRIPT["render"], *render_args)
@@ -326,11 +301,7 @@ def collect_publish(args) -> int:
     state["last_report_until"] = _slice_end(draft) or datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     save_state(state)
 
-    where_parts = []
-    if publication_pr:
-        where_parts.append("뉴스레터 publication PR")
-    else:
-        where_parts.append("뉴스레터 publication JSON")
+    where_parts = ["뉴스레터 투영 데이터 포함 HTML"]
     if published:
         where_parts.append("기존 Notion 초안")
     notify("TalkInsight — 리포트 준비됨",
@@ -379,11 +350,6 @@ def main() -> None:
     ap.add_argument("--period-id", help="이미 병합된 구간을 A4부터 다시 돌린다")
     ap.add_argument("--since", help="A4 슬라이스 시작. 생략하면 state.json의 last_report_until")
     ap.add_argument("--until", help="A4 슬라이스 끝(미포함). 보통 생략")
-    ap.add_argument(
-        "--no-publication-pr",
-        action="store_true",
-        help="공개 publication.json만 만들고 GitHub PR은 생성·갱신하지 않는다",
-    )
     ap.add_argument(
         "--legacy-notion-draft",
         action="store_true",

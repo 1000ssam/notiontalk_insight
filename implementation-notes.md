@@ -7,6 +7,18 @@
 
 ## 설계 결정
 
+### 2026-09-18 — 리포트 HTML 하나에 뉴스레터 투영 데이터를 함께 보존
+- **상황/기준**: 별도 publication PR은 사이음의 기존 리포트 PR·main 흐름과 이중으로 운영된다.
+- **선택**: A6 allowlist projection을 리포트 HTML의 `application/json` script에 비가시적으로 포함하고, 별도 publication PR 생성을 제거한다.
+- **근거**: 사이음이 올리는 기존 리포트 HTML 한 파일만으로 웹 디자인과 뉴스레터 구조화 입력을 같은 커밋에 묶을 수 있다.
+- **위치**: `scripts/render_report.py`, `scripts/run_cycle.py`
+
+### 2026-09-18 — 로컬 projection 파일은 output 아래의 임시 입력으로만 사용
+- **상황/기준**: HTML에 JSON을 포함하기 위해 중간 파일이 필요하지만, 이를 다시 Git에 올리면 한 호가 두 파일로 나눌다.
+- **선택**: `build_publication.py --out` 경로로 `output/reports/.insight-*.publication.json`을 잠시 만들고, 최종 Git 산출물은 `reports/*.html` 한 파일만 유지한다.
+- **근거**: 기존 리포트 PR 작성 방식을 바꾸지 않고 단일 산출물 계약을 유지한다.
+- **위치**: `scripts/build_publication.py`, `scripts/run_cycle.py`
+
 ### 2026-09-18 — 승인된 공개 projection을 뉴스레터 파이프라인의 단일 입력으로 사용
 - **상황/기준**: 현재 A7은 TalkInsight 전용 Notion DB에 본문을 복제하지만, 노션톡 뉴스레터 공개 HTML·뉴스레터 DB·SES 발송과는 연결되지 않았다.
 - **선택**: A6 직후 allowlist `publication.json`을 항상 생성하고, `TALKINSIGHT_GITHUB_TOKEN`이 있을 때 publication PR을 생성·갱신한다. 기존 Notion 초안 경로는 `--legacy-notion-draft`로만 명시적 실행한다.
@@ -113,7 +125,8 @@
 
 ## 미결 질문
 
-- [해결됨] 2026-09-18 최신 `origin/main` 위에 공개 projection 커밋을 이식하고 `run_cycle.py`에 A7P 생성·선택적 PR 갱신을 연결했다. Python 57개 테스트, `py_compile`, 실제 fixture projection·validator, `git diff --check`가 통과했다 (`scripts/run_cycle.py`, `tests/test_publication.py`).
+- [해결됨] A6 projection을 HTML에 안전하게 포함하고 newsletter parser가 다시 검증하는 계약을 fixture 왕복 검증과 전체 58개 테스트로 확인했다 (`scripts/render_report.py`, `tests/test_render_report.py`).
+- [해결됨] 2026-09-18 최신 `origin/main` 위에 공개 projection 코드를 이식하고 `run_cycle.py`에 A7P 생성·HTML embed를 연결했다 (`scripts/run_cycle.py`, `tests/test_publication.py`).
 - [미해결] 현재 브랜치는 로컬 커밋 준비 상태이며, upstream push·PR·main 보호 설정·required check 등록은 각각 별도 승인 전에 수행하지 않는다.
 - [확인필요] upstream `scieum/notiontalk_insight` 관리자가 `main` 보호, `validate-publication / trusted-content-gate` required check, CODEOWNERS 승인 요구를 실제로 설정해야 한다. 현재 계정은 upstream admin 권한이 없어 로컬 코드로 강제하거나 확인 완료 처리할 수 없다 (`README.md`, `.github/CODEOWNERS`).
 - [해결됨] Phase 1 최종 재감사의 중복 JSON 키, 타입 민감 const·enum, full-date, local/remote 공통 byte ceiling 검증까지 보강했다. A6→builder 통합 및 적대 케이스를 포함한 전체 41개 테스트, `/tmp` pycache를 사용한 `py_compile`, 전체 publication validator, `git diff --check`가 통과했다 (`tests/test_publication.py`).

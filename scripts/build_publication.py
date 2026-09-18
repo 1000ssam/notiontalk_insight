@@ -335,6 +335,7 @@ def main() -> None:
     parser.add_argument("--generated-at", required=True, help="RFC 3339 timestamp with timezone")
     parser.add_argument("--content-id", help="optional revision content ID")
     parser.add_argument("--slug", help="optional revision slug")
+    parser.add_argument("--out", type=Path, help="write to this local path instead of publications/<content-id>/publication.json")
     parser.add_argument("--dry-run", action="store_true", help="validate and print without writing")
     args = parser.parse_args()
 
@@ -361,10 +362,11 @@ def main() -> None:
         raise SystemExit(f"[build-publication] blocked: {exc}") from exc
 
     relative_target = publication_path(publication["content_id"])
-    target = ROOT / relative_target
+    target = args.out if args.out is not None else ROOT / relative_target
+    display_target = target.relative_to(ROOT) if target.is_relative_to(ROOT) else target
     if args.dry_run:
         print(pretty_json(publication), end="")
-        print(f"[build-publication] dry-run: would write {relative_target}", file=sys.stderr)
+        print(f"[build-publication] dry-run: would write {display_target}", file=sys.stderr)
         return
 
     existed = target.exists()
@@ -375,7 +377,7 @@ def main() -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(rendered, encoding="utf-8")
         status = "updated" if existed else "created"
-    print(f"[build-publication] {status}: {relative_target}")
+    print(f"[build-publication] {status}: {display_target}")
 
 
 if __name__ == "__main__":
